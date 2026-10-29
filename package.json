@@ -38,7 +38,7 @@
   "author": "GitHub",
   "license": "MIT",
   "devDependencies": {
-    "all-contributors-cli": "^6.26.1"
+    "all-contributors-cli": "^7.0.0"
   },
   "dependencies": {
     "js-yaml": "^4.3.2",
