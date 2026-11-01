@@ -14,10 +14,13 @@ keeps zooming out while the user reads history.
 | Frequent ticks; chart does not need to render React per tick | `reactive={false}`, then `ref.current.api()?.update(bar)` | The chart owns ongoing updates; React owns its lifetime |
 
 Reactive `data` always means the **entire desired dataset**. Passing `[latestBar]`
-replaces history. The wrapper attempts `update()` only for a one-item append or a
-same-time last-item replacement when all earlier item references match the
-upstream API's current data. Other changes use `setData()`. Preserving references
-allows the optimization; do not promise it for every upstream data representation.
+replaces history. The wrapper's incremental path compares earlier item references
+against `series.data()`. With wrapper **2.6.1** and Lightweight Charts **5.2.1**,
+that API reconstructs candle and line objects, so multi-bar tail replacements and
+appends use `setData()` even when React preserves earlier object references.
+Treat the React-owned recipe as complete-history replacement on this baseline.
+For frequent incremental writes, use the chart-owned recipe below with
+`reactive={false}` and explicit `series.update(bar)`.
 
 `reactive={false}` still calls `setData(data)` during initialization. It ignores
 subsequent data prop changes. Do not combine imperative ticks with a reactive
@@ -43,6 +46,10 @@ export type WireCandle = {
 };
 
 export function normalizeCandle(row: WireCandle): Candle {
+  // Reject runtime coercion of null, strings, and booleans to epoch seconds.
+  if (typeof row.timestampMs !== "number") {
+    throw new Error("Invalid candle timestamp");
+  }
   const seconds = row.timestampMs / 1000;
   const prices = [row.open, row.high, row.low, row.close].map(value => {
     // The wire type is not a runtime guarantee, and Number() turns null and blank
@@ -262,9 +269,10 @@ off and scroll after accepted updates only when follow mode is enabled.
   `reactive` does not stop the socket or give an imperative chart a replay buffer.
 - A trim or a batch append may call `setData()`; do not mutate earlier objects in
   place and expect the wrapper to detect that mutation.
-- Cloning the complete dataset on every render (for example `data.map(...)` in
-  JSX) changes every earlier reference and forces the `setData()` path. Copy at
-  the boundary once and preserve earlier objects during tail updates.
+- Avoid cloning the complete dataset on every render (for example `data.map(...)`
+  in JSX): it allocates unnecessarily and can retrigger the reactive data effect.
+  Preserving references does not bypass the baseline's `setData()` limitation
+  above. Use the chart-owned recipe when frequent full replacements are costly.
 - Confirm initial data is sorted and unique; a same-time update replaces exactly
   one bar; a later-time update adds one; an older-time update follows the chosen
   correction policy. Pan left, update, and verify the user's viewport remains.

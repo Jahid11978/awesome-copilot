@@ -126,19 +126,26 @@ the installed package.
   deliberate reset. See [range handling](references/history-and-range-selection.md).
 - **Data updates:** Use `data` for React-owned updates, or `reactive={false}` and the
   series API when per-tick React renders are measurably costly. Avoid mixing both.
-  Reactive `data` is always the complete dataset. The wrapper calls `update()` only
-  when every earlier item keeps the same object reference and the new array either
-  replaces the last item with one of the same time or appends exactly one item
-  with a new time. Anything else (including `alwaysReplaceData`) calls `setData()`.
-  To keep the incremental path, copy data once at the boundary and never clone or
-  mutate earlier items. See [live updates](references/market-data-and-live-updates.md).
+  Reactive `data` is always the complete dataset. With wrapper 2.6.1 and
+  Lightweight Charts 5.2.1, `series.data()` reconstructs candle and line objects;
+  the wrapper's earlier-item reference comparison therefore sends multi-bar tail
+  updates through `setData()`, even when React keeps earlier references stable.
+  Keep data immutable, but use the chart-owned `reactive={false}` recipe and
+  explicit `series.update(bar)` when incremental writes are required. See
+  [live updates](references/market-data-and-live-updates.md).
 
 ## Source
 
 Adapted from [ukorvl/lightweight-charts-react-components](https://github.com/ukorvl/lightweight-charts-react-components/tree/0368191127568e48aef6f7bda2ff3900e8e24756/skills/lightweight-charts-react-components)
 at commit `0368191127568e48aef6f7bda2ff3900e8e24756`. Original author: ukorvl.
-The [MIT license](LICENSE) and all nine reference recipes are retained unchanged.
-This catalog copy adds source attribution; it does not imply TradingView endorsement.
+The [MIT license](LICENSE) and all nine reference recipes are retained. Local
+corrections in [live updates](references/market-data-and-live-updates.md) reject
+malformed timestamps and explain the tested versions' reactive-update limitation;
+[session overlays](references/session-overlays-and-primitives.md) clarifies the
+primitive update callback.
+The other seven references and MIT notice are unchanged. This catalog copy adds
+source attribution and operational boundaries; it does not imply TradingView
+endorsement.
 
 Recipes generate application code and can change dependencies. Follow the user's
 requested scope and the host's approval policy. Feed access belongs to the app's

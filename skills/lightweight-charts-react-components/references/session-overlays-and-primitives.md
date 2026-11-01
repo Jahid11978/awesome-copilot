@@ -201,10 +201,12 @@ the same handler identity. This recipe has no custom event subscriptions.
 ## Series-specific drawings and custom-series boundaries
 
 For a vertical event line with a time-axis label, use a `SeriesPrimitive` under
-the target series. Implement `ISeriesPrimitive` with one `IPrimitivePaneView`
-whose `update()` caches `chart.timeScale().timeToCoordinate(time)` and whose
-renderer fills a full-height rectangle in the bitmap coordinate space (scale x
-and width by `horizontalPixelRatio`), plus one `ISeriesPrimitiveAxisView` from
+the target series. Implement `ISeriesPrimitive.updateAllViews()` to recalculate
+and cache `chart.timeScale().timeToCoordinate(time)`, or delegate that work to a
+pane view's own `update()` method. Lightweight Charts invokes the primitive's
+`updateAllViews()` callback during chart updates. Return one `IPrimitivePaneView`
+whose renderer fills a full-height rectangle in bitmap coordinate space (scale
+x and width by `horizontalPixelRatio`), plus one `ISeriesPrimitiveAxisView` from
 `timeAxisViews()` for the label. Format the label explicitly for UTC timestamps
 or business dates; `.toString()` on a `BusinessDay` object does not give a useful
 date. The `SeriesPrimitive` render factory receives `{ chart, series }`; use the
