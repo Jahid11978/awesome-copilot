@@ -93,17 +93,27 @@ test("a newer successful run supersedes an old approval request at the same head
     assert.deepEqual(await listWorkflowApprovals(repo, pull(), fake.runner), []);
 });
 
+test("a newer run associated only with another PR does not displace this PR's waiting run", async () => {
+    const fake = fakeGitHub({ runs: [
+        run({ pull_requests: [{ number: 1 }] }),
+        run({ id: 11, pull_requests: [{ number: 2 }] }),
+    ] });
+    assert.deepEqual(await listWorkflowApprovals(repo, pull(), fake.runner), [approval]);
+});
+
 test("PR listing preserves approval discovery errors without clearing checks", async () => {
     const items = await listOpenPullRequests(repo, async (args) => {
         if (args.includes("--json")) return JSON.stringify({
             statusCheckRollup: [{ status: "COMPLETED", conclusion: "ACTION_REQUIRED" }],
         });
         if (args.at(-1).includes("/pulls?")) return JSON.stringify([[pull()]]);
-        throw new Error("Actions read denied (403)");
+        throw new Error("Attacker-controlled workflow output");
     });
     assert.equal(items[0].checksState, "actionRequired");
     assert.deepEqual(items[0].workflowApprovals, []);
-    assert.match(items[0].workflowApprovalError, /Actions read denied/);
+    assert.equal(items[0].workflowApprovalError,
+        "Could not discover workflow approvals (WORKFLOW_APPROVAL_DISCOVERY_FAILED).");
+    assert.doesNotMatch(items[0].workflowApprovalError, /Attacker-controlled/);
 });
 
 test("approval uses the supported POST endpoint after permission, run and live head guards", async () => {

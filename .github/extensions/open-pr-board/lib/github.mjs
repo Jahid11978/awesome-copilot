@@ -197,7 +197,8 @@ export async function listWorkflowApprovals(repo, pr, runner = runGh) {
     const latest = new Map();
     for (const run of pages.flatMap((page) => page.workflow_runs)) {
         if (run.head_sha !== pr.head.sha || run.head_branch !== pr.head.ref ||
-            run.repository?.id !== pr.base.repo.id || run.head_repository?.id !== pr.head.repo.id) continue;
+            run.repository?.id !== pr.base.repo.id || run.head_repository?.id !== pr.head.repo.id ||
+            (run.pull_requests?.length && !run.pull_requests.some((entry) => entry.number === pr.number))) continue;
         const previous = latest.get(run.workflow_id);
         if (!previous || run.id > previous.id) latest.set(run.workflow_id, run);
     }
@@ -293,9 +294,9 @@ export async function listOpenPullRequests(repo, runner = runGh) {
         }
         try {
             pr.workflowApprovals = await listWorkflowApprovals(repo, pr, runner);
-        } catch (error) {
+        } catch {
             pr.workflowApprovals = [];
-            pr.workflowApprovalError = `Could not discover workflow approvals: ${error.message}`;
+            pr.workflowApprovalError = "Could not discover workflow approvals (WORKFLOW_APPROVAL_DISCOVERY_FAILED).";
         }
     });
     return pullRequests.map(normalizePullRequest);

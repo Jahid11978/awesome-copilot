@@ -55,13 +55,16 @@ authenticated `gh` CLI.
   commit. This uses GitHub's fork workflow approval endpoint, not a PR approving
   review, re-run, auto-merge, or required-check bypass. The board refreshes after
   success and records workflow execution approval in history without changing the
-  PR's triage bucket, review queue, or staged feedback.
+  PR's triage bucket, review queue, or staged feedback. Execution events do not
+  calibrate AI review strictness.
   `ACTION_REQUIRED` checks are shown as needing attention, not test failures:
   submission gates can require PR reviews rather than execution approval.
   Queued/running checks, actual failures, deployment/environment approvals, private
   forks, and non-fork runs are not eligible. Only the latest run for each workflow
-  at the current fork head is offered. Discovery errors remain visible; refresh to
-  retry. Unassociated fork runs are matched by repository IDs, branch, and exact SHA.
+  associated with this PR at the current fork head is offered; runs associated only
+  with another PR do not displace it. Discovery errors remain visible as a fixed
+  failure indicator, without retaining raw tool errors; refresh to retry.
+  Unassociated fork runs are matched by repository IDs, branch, and exact SHA.
   The authenticated `gh` account needs repository write access and token access to
   Actions; GitHub enforces final eligibility and permissions. Errors are surfaced,
   never automatically retried. After an unconfirmed write, inspect the run on GitHub
@@ -145,6 +148,9 @@ are tested with injected in-process fakes, never the authenticated CLI.
 Run `node --test eng/open-pr-board-workflow-approval.test.mjs` to check fork workflow
 discovery, explicit confirmation, stale state and permission guards, shared action
 locking, success, and errors without remote mutations.
+Run `node --test eng/open-pr-board-prompt-security.test.mjs` to check bounded,
+untrusted prompt metadata, safe discovery-error persistence, and calibration that
+excludes workflow execution events.
 Run `node --test eng/board-bulk-actions.test.mjs` to check column confirmation, staged feedback,
 queue exclusions, and partial failures using in-process fakes.
 Run `node --test eng/board-preview.test.mjs` to check preview dismissal and in-flight actions.
